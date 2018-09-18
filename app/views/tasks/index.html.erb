@@ -1,0 +1,41 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Tasks</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Operation</th>
+      <th>Dataset</th>
+      <th>Datafile</th>
+      <th>Storage root</th>
+      <th>Storage key</th>
+      <th>Binary name</th>
+      <th>Start</th>
+      <th>Stop</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @tasks.each do |task| %>
+      <tr>
+        <td><%= task.operation %></td>
+        <td><%= task.dataset_id %></td>
+        <td><%= task.datafile_id %></td>
+        <td><%= task.storage_root %></td>
+        <td><%= task.storage_key %></td>
+        <td><%= task.binary_name %></td>
+        <td><%= task.start_time ? task.start_time.iso8601 : "" %></td>
+        <td><%= task.stop_time ? task.stop_time.iso8601 : "" %></td>
+        <td><%= link_to 'Show', task %></td>
+        <td><%= link_to 'Edit', edit_task_path(task) %></td>
+        <td><%= link_to 'Destroy', task, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Task', new_task_path %>

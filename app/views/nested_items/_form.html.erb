@@ -1,0 +1,57 @@
+<%= form_with(model: nested_item, local: true) do |form| %>
+  <% if nested_item.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(nested_item.errors.count, "error") %> prohibited this nested_item from being saved:</h2>
+
+      <ul>
+      <% nested_item.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :task_id %>
+    <%= form.number_field :task_id %>
+  </div>
+
+  <div class="field">
+    <%= form.label :dataset_id %>
+    <%= form.number_field :dataset_id %>
+  </div>
+
+  <div class="field">
+    <%= form.label :datafile_id %>
+    <%= form.number_field :datafile_id %>
+  </div>
+
+  <div class="field">
+    <%= form.label :tmp_path %>
+    <%= form.text_field :tmp_path %>
+  </div>
+
+  <div class="field">
+    <%= form.label :item_path %>
+    <%= form.text_field :item_path %>
+  </div>
+
+  <div class="field">
+    <%= form.label :item_name %>
+    <%= form.text_field :item_name %>
+  </div>
+
+  <div class="field">
+    <%= form.label :size %>
+    <%= form.number_field :size %>
+  </div>
+
+  <div class="field">
+    <%= form.label :is_directory %>
+    <%= form.check_box :is_directory %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+<% end %>

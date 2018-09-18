@@ -1,0 +1,27 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Message Ins</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Content</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @message_ins.each do |message_in| %>
+      <tr>
+        <td><%= message_in.content %></td>
+        <td><%= link_to 'Show', message_in %></td>
+        <td><%= link_to 'Edit', edit_message_in_path(message_in) %></td>
+        <td><%= link_to 'Destroy', message_in, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Message In', new_message_in_path %>

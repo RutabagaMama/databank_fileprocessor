@@ -1,0 +1,34 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Operation:</strong>
+  <%= @task.operation %>
+</p>
+
+<p>
+  <strong>Dataset:</strong>
+  <%= @task.dataset_id %>
+</p>
+
+<p>
+  <strong>Datafile:</strong>
+  <%= @task.datafile_id %>
+</p>
+
+<p>
+  <strong>Storage root:</strong>
+  <%= @task.storage_root %>
+</p>
+
+<p>
+  <strong>Storage key:</strong>
+  <%= @task.storage_key %>
+</p>
+
+<p>
+  <strong>Binary name:</strong>
+  <%= @task.binary_name %>
+</p>
+
+<%= link_to 'Edit', edit_task_path(@task) %> |
+<%= link_to 'Back', tasks_path %>

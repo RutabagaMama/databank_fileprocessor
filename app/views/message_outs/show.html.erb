@@ -1,0 +1,9 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Content:</strong>
+  <%= @message_out.content %>
+</p>
+
+<%= link_to 'Edit', edit_message_out_path(@message_out) %> |
+<%= link_to 'Back', message_outs_path %>

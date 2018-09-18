@@ -1,0 +1,41 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Nested Items</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Task</th>
+      <th>Dataset</th>
+      <th>Datafile</th>
+      <th>Tmp path</th>
+      <th>Item path</th>
+      <th>Item name</th>
+      <th>Size</th>
+      <th>Is directory</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @nested_items.each do |nested_item| %>
+      <tr>
+        <td><%= nested_item.task_id %></td>
+        <td><%= nested_item.dataset_id %></td>
+        <td><%= nested_item.datafile_id %></td>
+        <td><%= nested_item.tmp_path %></td>
+        <td><%= nested_item.item_path %></td>
+        <td><%= nested_item.item_name %></td>
+        <td><%= nested_item.size %></td>
+        <td><%= nested_item.is_directory %></td>
+        <td><%= link_to 'Show', nested_item %></td>
+        <td><%= link_to 'Edit', edit_nested_item_path(nested_item) %></td>
+        <td><%= link_to 'Destroy', nested_item, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Nested Item', new_nested_item_path %>

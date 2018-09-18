@@ -1,0 +1,21 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  task_id: 1
+  dataset_id: 1
+  datafile_id: 1
+  tmp_path: MyString
+  item_path: MyString
+  item_name: MyString
+  size: 1
+  is_directory: false
+
+two:
+  task_id: 1
+  dataset_id: 1
+  datafile_id: 1
+  tmp_path: MyString
+  item_path: MyString
+  item_name: MyString
+  size: 1
+  is_directory: false

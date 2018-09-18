@@ -1,0 +1,11 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  report: MyText
+  notes: MyText
+  resolved: false
+
+two:
+  report: MyText
+  notes: MyText
+  resolved: false

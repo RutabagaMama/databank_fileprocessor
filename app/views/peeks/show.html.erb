@@ -1,0 +1,24 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Task:</strong>
+  <%= @peek.task_id %>
+</p>
+
+<p>
+  <strong>Datafile:</strong>
+  <%= @peek.datafile_id %>
+</p>
+
+<p>
+  <strong>Peek type:</strong>
+  <%= @peek.peek_type %>
+</p>
+
+<p>
+  <strong>Peek text:</strong>
+  <%= @peek.peek_text %>
+</p>
+
+<%= link_to 'Edit', edit_peek_path(@peek) %> |
+<%= link_to 'Back', peeks_path %>

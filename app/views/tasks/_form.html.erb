@@ -1,0 +1,47 @@
+<%= form_with(model: task, local: true) do |form| %>
+  <% if task.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(task.errors.count, "error") %> prohibited this task from being saved:</h2>
+
+      <ul>
+      <% task.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= form.label :operation %>
+    <%= form.text_field :operation %>
+  </div>
+
+  <div class="field">
+    <%= form.label :dataset_id %>
+    <%= form.number_field :dataset_id %>
+  </div>
+
+  <div class="field">
+    <%= form.label :datafile_id %>
+    <%= form.number_field :datafile_id %>
+  </div>
+
+  <div class="field">
+    <%= form.label :storage_root %>
+    <%= form.text_field :storage_root %>
+  </div>
+
+  <div class="field">
+    <%= form.label :storage_key %>
+    <%= form.text_field :storage_key %>
+  </div>
+
+  <div class="field">
+    <%= form.label :binary_name %>
+    <%= form.text_field :binary_name %>
+  </div>
+
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+<% end %>

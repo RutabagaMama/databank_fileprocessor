@@ -1,0 +1,44 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Task:</strong>
+  <%= @nested_item.task_id %>
+</p>
+
+<p>
+  <strong>Dataset:</strong>
+  <%= @nested_item.dataset_id %>
+</p>
+
+<p>
+  <strong>Datafile:</strong>
+  <%= @nested_item.datafile_id %>
+</p>
+
+<p>
+  <strong>Tmp path:</strong>
+  <%= @nested_item.tmp_path %>
+</p>
+
+<p>
+  <strong>Item path:</strong>
+  <%= @nested_item.item_path %>
+</p>
+
+<p>
+  <strong>Item name:</strong>
+  <%= @nested_item.item_name %>
+</p>
+
+<p>
+  <strong>Size:</strong>
+  <%= @nested_item.size %>
+</p>
+
+<p>
+  <strong>Is directory:</strong>
+  <%= @nested_item.is_directory %>
+</p>
+
+<%= link_to 'Edit', edit_nested_item_path(@nested_item) %> |
+<%= link_to 'Back', nested_items_path %>

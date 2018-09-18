@@ -1,0 +1,2 @@
+module MessageInsHelper
+end

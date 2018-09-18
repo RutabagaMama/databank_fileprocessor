@@ -1,0 +1,2 @@
+class NestedItem < ApplicationRecord
+end

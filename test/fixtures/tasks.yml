@@ -1,0 +1,17 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  operation: MyString
+  dataset_id: 1
+  datafile_id: 1
+  storage_root: MyString
+  storage_key: MyString
+  binary_name: MyString
+
+two:
+  operation: MyString
+  dataset_id: 1
+  datafile_id: 1
+  storage_root: MyString
+  storage_key: MyString
+  binary_name: MyString
