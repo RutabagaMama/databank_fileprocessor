@@ -1,4 +1,4 @@
-# Illinois Data Bank Fileprocessor
+# Illinois Data Bank File Processor
 
 Manages file processing tasks to extract preview text and information about files nested in container files.
 
