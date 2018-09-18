@@ -1,24 +1,8 @@
-# README
+# Illinois Data Bank Fileprocessor
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Manages file processing tasks to extract preview text and information about files nested in container files.
 
-Things you may want to cover:
+Web interface supports monitoring and management of tasks as triggered by messages from Illinois Data Bank through a RabbitMQ server.
 
-* Ruby version
+Depends on cron job to trigger script to run task hub:handle_messages.
 
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
