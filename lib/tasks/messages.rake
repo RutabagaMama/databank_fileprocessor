@@ -20,13 +20,35 @@ namespace :messages do
 
     msg2 = Hash.new
     msg2['storage_root'] = 'draft'
-    msg2['storage_key'] = 'u1gfl/monk-wiki.zip'
+    msg2['storage_key'] = 'd6iv1/monk-website-files.zip'
     msg2['dataset_id'] = '2'
-    msg2['datafile_id'] = '17'
-    msg2['binary_name'] = 'monk-wiki.zip'
+    msg2['datafile_id'] = '18'
+    msg2['binary_name'] = 'monk-website-files.zip'
     msg2['operation'] = 'process'
     if connector && in_queue
       connector.send_message(in_queue, msg2)
+    end
+
+    msg3 = Hash.new
+    msg3['storage_root'] = 'draft'
+    msg3['storage_key'] = 'f1250a409bfe6c731ed3b875ed1a7012'
+    msg3['dataset_id'] = '11'
+    msg3['datafile_id'] = '19'
+    msg3['binary_name'] = 'Brain_Images.zip'
+    msg3['operation'] = 'process'
+    if connector && in_queue
+      connector.send_message(in_queue, msg3)
+    end
+
+    msg4 = Hash.new
+    msg4['storage_root'] = 'draft'
+    msg4['storage_key'] = 'f42949e3f6695f462aa53c14386fd70d'
+    msg4['dataset_id'] = '2'
+    msg4['datafile_id'] = '17'
+    msg4['binary_name'] = '15IL004_C7U2JANXX_s_7_fastq.txt.gz'
+    msg4['operation'] = 'process'
+    if connector && in_queue
+      connector.send_message(in_queue, msg4)
     end
 
   end
