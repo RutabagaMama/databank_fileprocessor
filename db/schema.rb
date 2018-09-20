@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_09_17_192257) do
+ActiveRecord::Schema.define(version: 2018_09_20_142240) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -31,13 +31,13 @@ ActiveRecord::Schema.define(version: 2018_09_17_192257) do
     t.integer "task_id"
     t.integer "dataset_id"
     t.integer "datafile_id"
-    t.string "tmp_path"
     t.string "item_path"
     t.string "item_name"
     t.bigint "size"
     t.boolean "is_directory"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "sent", default: false
   end
 
   create_table "peeks", force: :cascade do |t|
@@ -47,6 +47,7 @@ ActiveRecord::Schema.define(version: 2018_09_17_192257) do
     t.text "peek_text"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "sent", default: false
   end
 
   create_table "problems", force: :cascade do |t|

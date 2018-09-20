@@ -8,7 +8,7 @@ class MessageOut < ApplicationRecord
     if self.content && self.content != ''
       AmqpConnector.instance.send_message(MessageOut.queue, self.content)
     else
-      Problem.create(report: "no content for MessageOut send: #{self.id}")
+      Problem.report("no content for MessageOut send: #{self.id}")
     end
   end
 

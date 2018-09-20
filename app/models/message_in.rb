@@ -1,7 +1,8 @@
 class MessageIn < ApplicationRecord
   def self.queue
-    APP_CONFIG['databank']['incoming_queue']
+    APP_CONFIG['messages']['incoming_queue']
   end
+
 
   def self.get_messages
     config = (APP_CONFIG['amqp'] || {}).symbolize_keys
@@ -12,11 +13,10 @@ class MessageIn < ApplicationRecord
     conn.start
 
     ch = conn.create_channel
-    q = ch.queue("fp_to_idb", :durable => true)
+    q = ch.queue("idb_to_fp", :durable => true)
     x = ch.default_exchange
 
     has_payload = true
-
 
     while has_payload
       delivery_info, properties, payload = q.pop
@@ -48,11 +48,11 @@ class MessageIn < ApplicationRecord
                      datafile_id: task_hash['datafile_id'].to_i,
                      binary_name: task_hash['binary_name'] )
       else
-        Problem.create(report: "Invalid message from databank: #{task_hash.to_yaml}")
+        Problem.report("Invalid message from databank: #{task_hash.to_yaml}")
       end
 
     else
-      Problem.create(report: "Missing content for MessageIn: #{self.id}")
+      Problem.report("Missing content for MessageIn: #{self.id}")
     end
 
   end

@@ -1,5 +1,7 @@
 class Task < ApplicationRecord
 
+  attr_accessor :tmp_datafile
+
   def self.handle_new_tasks
 
     new_tasks = Task.where(start_time: nil)
@@ -16,7 +18,6 @@ class Task < ApplicationRecord
 
   end
 
-
   def handle
     if self.operation && self.operation != ''
       if self.operation == 'process'
@@ -24,50 +25,46 @@ class Task < ApplicationRecord
       elsif self.operation == 'cancel'
         self.cancel
       else
-        Problem.create("invalid operation for task #{task.id}")
+        Problem.report("invalid operation for task #{task.id}")
       end
     else
-      Problem.create("no operation for task #{self.id}.")
+      Problem.report("no operation for task #{self.id}")
     end
   end
 
-
   def process
-    tmp_datafile = TmpDatafile.create(self)
-    tmp_datafile.generate_peeks_items
-    tmp_datafile.delete_if_exists
-    self.stop_time = Time.now
-    self.save
+    self.tmp_datafile = TmpDatafile.new(self)
+
+    if self.tmp_datafile
+      success = self.tmp_datafile.extract_features
+      self.stop_time = Time.now
+      self.handled = success
+      self.save
+    end
+
   end
 
   def cancel
-    mark_tasks
-    remove_file
-  end
-
-  def mark_tasks
-
-  end
-
-  #TODO handle file is being processed
-  def delete_file_if_exists
-    if Application.storage_manager.tmp_root.exist(tmp_key)
-      Application.storage_manager.tmp_root.delete_content(tmp_key)
+    target_tasks = Task.where(datafile_id: self.datafile_id)
+    if target_tasks.count < 0
+      self.stop_time = Time.now
+      self.handled = false
+      Problem.report("no task found to cancel for task #{self.id}")
+    else
+      target_tasks.each do |task|
+        if task.stop_time && task.stop_time > Time.now
+          # too late to cancel processing, but may be able to stop messages
+          self.stop_time = Time.now
+          self.handled = true
+          # else wait for processing task to mark the cancel task stopped and handled
+        end
+      end
     end
+    self.save
   end
 
   def tmp_key
     File.join("task_#{self.id}", self.binary_name)
-  end
-
-  def current_root
-    if self.storage_root == 'draft'
-      return Application.storage_manager.draft_root
-    elsif self.storage_root == 'medusa'
-      return Application.storage_root.medusa_root
-    else
-      return nil
-    end
   end
 
 end

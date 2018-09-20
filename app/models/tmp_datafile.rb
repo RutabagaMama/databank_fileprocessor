@@ -1,8 +1,15 @@
+require 'mime/types'
+require 'os'
+require 'zip'
+require 'libarchive'
+
 class TmpDatafile
   extend ActiveModel::Naming
 
   attr_accessor :task
 
+  ALLOWED_CHAR_NUM = 1024 * 8
+  ALLOWED_DISPLAY_BYTES = ALLOWED_CHAR_NUM * 8
   TMP_ROOT = Application.storage_manager.tmp_root
 
   # source file must exist
@@ -11,6 +18,8 @@ class TmpDatafile
 
   def initialize(task)
 
+    self.task = task
+
     # validate
     source_root = Application.storage_manager.root_set.at(task.storage_root)
     return nil unless source_root
@@ -18,24 +27,351 @@ class TmpDatafile
     source_file_exists = source_root.exist?(task.storage_key)
     return nil unless source_file_exists
 
-    return nil if exist?
+    if exist?
+      Problem.report("failed attempt to overwrite file with key #{task.tmp_key} for task #{task.id}")
+      return nil
+    end
 
     TMP_ROOT.copy_content_to(task.tmp_key, source_root, task.storage_key)
 
-    Problem.create("Tmp file not copied for task #{task.id}")
+    unless exist?
+      Problem.report("failed attempt to copy file with key #{task.tmp_key} for task #{task.id}")
+      nil
+    end
 
-    return nil unless exist?
+  end
 
-    self.task = task
+  # populate peek and nested_item tables
+  # return true for success and false for failure
+  def extract_features
 
+    peek_type, peek_text = "none", ""
+
+    mime_guess = top_level_mime || mime_from_filename(self.task.binary_name) || 'application/octet-stream'
+
+    mime_parts = mime_guess.split("/")
+
+    text_subtypes = ['csv', 'xml', 'x-sh', 'x-javascript', 'json', 'r', 'rb']
+
+    nonzip_archive_subtypes = ['x-7z-compressed', 'x-tar']
+
+    pdf_subtypes = ['pdf', 'x-pdf']
+
+    microsoft_subtypes = ['msword',
+                          'vnd.openxmlformats-officedocument.wordprocessingml.document',
+                          'vnd.openxmlformats-officedocument.wordprocessingml.template',
+                          'vnd.ms-word.document.macroEnabled.12',
+                          'vnd.ms-word.template.macroEnabled.12',
+                          'vnd.ms-excel',
+                          'vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                          'vnd.openxmlformats-officedocument.spreadsheetml.template',
+                          'vnd.ms-excel.sheet.macroEnabled.12',
+                          'vnd.ms-excel.template.macroEnabled.12',
+                          'vnd.ms-excel.addin.macroEnabled.12',
+                          'vnd.ms-excel.sheet.binary.macroEnabled.12',
+                          'vnd.ms-powerpoint',
+                          'vnd.openxmlformats-officedocument.presentationml.presentation',
+                          'vnd.openxmlformats-officedocument.presentationml.template',
+                          'vnd.openxmlformats-officedocument.presentationml.slideshow',
+                          'vnd.ms-powerpoint.addin.macroEnabled.12',
+                          'vnd.ms-powerpoint.presentation.macroEnabled.12',
+                          'vnd.ms-powerpoint.template.macroEnabled.12',
+                          'vnd.ms-powerpoint.slideshow.macroEnabled.12']
+
+    subtype = mime_parts[1].downcase
+
+    if mime_parts[0] == 'text' || text_subtypes.include?(subtype)
+      return extract_text
+    elsif mime_parts[0] == 'image'
+      return extract_image
+    elsif microsoft_subtypes.include?(subtype)
+      return extract_microsoft
+    elsif pdf_subtypes.include?(subtype)
+      return extract_pdf
+    elsif subtype == 'zip'
+      return extract_zip
+    elsif nonzip_archive_subtypes.include(subtype)
+      return extract_archive
+    else
+      return extract_default
+    end
+  end
+
+  # destroy related peek and nested_item tables
+  # return true for success and false for failure
+  def destroy_features
+    raise("not yet implemented")
+  end
+
+  def task_cancelled?
+    cancel_tasks = Task.where(operation: 'cancel', datafile_id: self.task.datafile_id).where("created_at > #{self.task.created_at}")
+    cancel_tasks.count > 0
   end
 
   def delete_if_exists
-    TMP_ROOT.delete_content(self.tmp_key) if exist?
+    if self.task && self.task.tmp_key
+      TMP_ROOT.delete_content(self.task.tmp_key) if exist?
+      true
+    else
+      false
+    end
   end
 
   def exist?
-    return TMP_ROOT.exist?(self.tmp_key)
+    if self.task && self.task.tmp_key
+      TMP_ROOT.exist?(self.task.tmp_key)
+    else
+      false
+    end
+
+  end
+
+  def storage_path
+    # this works because the tmp root is always a filesystem
+    Application.storage_manager.tmp_root.with_input_file(self.task.tmp_key)
+  end
+
+  def top_level_mime
+    TmpDatafile.mime_from_path(self.storage_path)
+  end
+
+  def self.mime_from_path(path)
+    `file --mime -b "#{path}"` rescue nil
+  end
+
+  def self.mime_from_filename(filename)
+    mime_guesses = MIME::Types.type_for(filename).first.content_type
+    if mime_guesses.length > 0
+      mime_guesses.first.content_type
+    else
+      nil
+    end
+  end
+
+  def extract_text
+    begin
+    num_bytes = File.size?(self.storage_path)
+      if num_bytes > ALLOWED_DISPLAY_BYTES
+        enc = TmpDatafile.charset_from_path(self.storage_path) ||'UTF-8'
+        peek_text = ""
+        File.open(self.storage_path, 'r', encoding: enc).each do |line|
+          peek_text << line
+          if peek_text.length > ALLOWED_CHAR_NUM
+            create_peek('part_text', peek_text)
+            return true
+          end
+        end
+      else
+        create_peek('full_text', File.read(self.storage_path, encoding: enc))
+        return true
+      end
+    rescue StandardError => ex
+      create_peek('none','')
+      Problem.report("Problem extracting text for task #{self.task.id}: #{ex.message}")
+      return false
+    end
+  end
+
+  def extract_image
+    begin
+      create_peek('image', '')
+      return true
+    rescue StandardError => ex
+      create_peek('none', '')
+      Problem.report("Problem extracting image for task #{self.task.id}: #{ex.message}")
+      return false
+    end
+  end
+
+  def extract_microsoft
+    begin
+      create_peek('microsoft', '')
+      return true
+    rescue StandardError => ex
+      Problem.report("Problem extracting microsoft for task #{self.task.id}: #{ex.message}")
+      return false
+    end
+  end
+
+  def extract_pdf
+    begin
+      create_peek('pdf', '')
+      return true
+    rescue StandardError => ex
+      Problem.report("Problem extracting pdf for task #{self.task.id}: #{ex.message}")
+      return false
+    end
+  end
+
+  def extract_zip
+    begin
+      entry_paths = []
+      Zip::File.open(self.storage_path) do |zip_file|
+        zip_file.each do |entry|
+          if entry.name_safe?
+            entry_path = valid_entry_path(entry.name)
+            if entry_path
+              entry_paths << entry_path
+              create_item(entry_path, name_part(entry_path), entry.size, is_directory(entry_path))
+            end
+          end
+        end
+      end
+
+      if entry_paths.length > 0
+        create_peek('listing', entry_paths_arr_to_html(entry_paths))
+      else
+        Problem.report("no items found for zip listing for task #{self.task.id}")
+        create_peek('none', '')
+      end
+
+      return true
+    rescue StandardError => ex
+      Problem.report("problem extracting zip listing for task #{self.task.id}: #{ex.message}")
+      return false
+    end
+  end
+
+  def extract_archive
+    begin
+
+      entry_paths = []
+
+      Archive.read_open_filename('foo.tar.gz') do |ar|
+        while entry = ar.next_header
+
+          entry_path = valid_entry_path(entry.pathname)
+          if entry_path
+            entry_paths << entry_path
+            entry_size = 0
+            ar.read_data(1024) do |x|
+              put x.class
+              entry_size = entry_size + x.length
+            end
+            create_item(entry_path, name_part(entry_path), entry_size, is_directory(entry_path))
+          end
+        end
+      end
+
+      if entry_paths.length > 0
+        create_peek('listing', entry_paths_arr_to_html(entry_paths))
+        return true
+      else
+        Problem.report("no items found for archive listing for task #{self.task.id}")
+        create_peek('none', '')
+        return false
+      end
+
+    rescue StandardError => ex
+      Problem.report("problem extracting extract listing for task #{self.task.id}: #{ex.message}")
+      return false
+    end
+  end
+
+  def extract_default
+    begin
+      return true
+    rescue StandardError => ex
+      Problem.report("problem creating default peek for task #{self.task.id}")
+      return false
+    end
+  end
+
+  def valid_entry_path(entry_path)
+    valid_path = nil
+    if entry_path[-1] == '/'
+      valid_path = entry_path[0...-1]
+    end
+  end
+
+  def is_directory(path)
+    entry_parts = path.split('/')
+    ends_in_slash = path[-1] == '/'
+    is_ds_store = name_part(path).strip() == '.DS_Store'
+    is_mac_thing = entry_parts.include?('__MACOSX')
+
+    ends_in_slash && !is_ds_store && !is_mac_thing
+
+  end
+
+  def name_part(path)
+    entry_parts = path.split('/')
+    if entry_parts.length > 1
+      entry_parts[-1]
+    else
+      entry_parts
+    end
+  end
+
+  def self.charset_from_path(path)
+
+    file_info = ""
+
+    if OS.mac?
+      file_info = `file -I #{path}`
+    elsif OS.linux?
+      file_info = `file -i #{path}`
+    else
+      return nil
+    end
+
+    if file_info.length > 0
+      file_info.strip.split('charset=').last
+    else
+      nil
+    end
+  end
+
+  def entry_paths_arr_to_html(entry_paths)
+    return_string = '<span class="glyphicon glyphicon-folder-open"></span> '
+
+    return_string << self.bytestream_name
+
+    entry_paths.each do |entry_path|
+
+      if entry_path.exclude?('__MACOSX/') && entry_path.exclude?('.DS_Store')
+
+        name_arr = entry_path.split("/")
+
+        name_arr.length.times do
+          return_string << "<div class='indent'>"
+        end
+
+        if entry_path[-1] == "/" # means directory
+          return_string << '<span class="glyphicon glyphicon-folder-open"></span> '
+
+        else
+          return_string << '<span class="glyphicon glyphicon-file"></span> '
+        end
+
+        return_string << name_arr.last
+        name_arr.length.times do
+          return_string << "</div>"
+        end
+      end
+
+    end
+
+    return return_string
+
+  end
+
+  def create_peek(peek_type, peek_text)
+    Peek.create(task_id: self.task.id,
+                datafile_id: self.task.datafile_id,
+                peek_type: peek_type,
+                peek_text:peek_text )
+  end
+
+  def create_item(path, name, size, is_directory)
+    NestedItem.create(task_id: self.task_id,
+                      dataset_id: self.task.datafiles_id,
+                      datafile_id: self.task.datafile_id,
+                      item_path: path,
+                      item_name: name,
+                      size: size,
+                      is_directory: is_directory)
+
   end
 
 end

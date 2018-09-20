@@ -48,8 +48,14 @@ gem 'bootstrap', '~> 4.1.3'
 # Use in-house storage gem to manage flexible storage on filesystems and s3 buckets
 gem 'medusa_storage', git: 'https://github.com/medusa-project/medusa_storage.git', branch: 'master'
 
-# Use ruby-filemagic to detect mimetypes
-gem 'ruby-filemagic'
+# Use mime-types to determine mimetypes based on extension
+gem 'mime-types', require: 'mime/types/full'
+
+# Use rubyzip to read zip files
+gem 'rubyzip'
+
+# Use libarchive for non-zip archive files
+gem 'libarchive'
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console

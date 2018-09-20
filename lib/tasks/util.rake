@@ -6,4 +6,5 @@ namespace :util do
     MessageOut.all.destroy_all
     Problem.all.destroy_all
   end
+
 end

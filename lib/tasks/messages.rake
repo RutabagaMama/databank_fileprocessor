@@ -1,7 +1,7 @@
 namespace :messages do
 
   desc 'send test messages'
-  task send_test_messages: :environment do
+  task mock_messages: :environment do
 
     msg1 = Hash.new
     msg1['storage_root'] = 'draft'
@@ -10,8 +10,13 @@ namespace :messages do
     msg1['datafile_id'] = '17'
     msg1['binary_name'] = 'monk-wiki.zip'
     msg1['operation'] = 'process'
-    out1 = MessageOut.create(content: msg1.to_json)
-    out1.send_message
+    connector = AmqpConnector.instance
+    in_queue = MessageIn.queue
+    if connector && in_queue
+      connector.send_message(in_queue, msg1)
+    else
+      raise("no connector or in queue in rake task")
+    end
 
     msg2 = Hash.new
     msg2['storage_root'] = 'draft'
@@ -20,8 +25,9 @@ namespace :messages do
     msg2['datafile_id'] = '17'
     msg2['binary_name'] = 'monk-wiki.zip'
     msg2['operation'] = 'process'
-    out2 = MessageOut.create(content: msg2.to_json)
-    out2.send_message
+    if connector && in_queue
+      connector.send_message(in_queue, msg2)
+    end
 
   end
 
@@ -32,7 +38,7 @@ namespace :messages do
 
   desc 'create test Problem'
   task make_problem: :environment do
-    Problem.create(report: "test")
+    Problem.report("test")
   end
 
   desc 'create test Task'
