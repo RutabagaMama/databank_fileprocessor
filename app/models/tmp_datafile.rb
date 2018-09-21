@@ -49,6 +49,8 @@ class TmpDatafile
 
     mime_guess = top_level_mime || mime_from_filename(self.task.binary_name) || 'application/octet-stream'
 
+    #Rails.logger.warn("#{self.task.binary_name} - #{mime_guess}")
+
     mime_parts = mime_guess.split("/")
 
     text_subtypes = ['csv', 'xml', 'x-sh', 'x-javascript', 'json', 'r', 'rb']
@@ -90,31 +92,21 @@ class TmpDatafile
       return extract_pdf
     elsif subtype == 'zip'
       return extract_zip
-    elsif nonzip_archive_subtypes.include(subtype)
+    elsif nonzip_archive_subtypes.include?(subtype)
       return extract_archive
     else
       return extract_default
     end
-  end
 
-  # destroy related peek and nested_item tables
-  # return true for success and false for failure
-  def destroy_features
-    raise("not yet implemented")
   end
-
+  
   def task_cancelled?
     cancel_tasks = Task.where(operation: 'cancel', datafile_id: self.task.datafile_id).where("created_at > #{self.task.created_at}")
     cancel_tasks.count > 0
   end
 
-  def delete_if_exists
-    if self.task && self.task.tmp_key
-      TMP_ROOT.delete_content(self.task.tmp_key) if exist?
-      true
-    else
-      false
-    end
+  def delete_tree
+    TMP_ROOT.delete_tree(self.task.tmp_key) if exist?
   end
 
   def exist?
@@ -123,12 +115,12 @@ class TmpDatafile
     else
       false
     end
-
   end
 
   def storage_path
     # this works because the tmp root is always a filesystem
-    Application.storage_manager.tmp_root.with_input_file(self.task.tmp_key)
+    root_path = Application.storage_manager.tmp_root.path
+    File.join(root_path, self.task.tmp_key)
   end
 
   def top_level_mime
@@ -136,7 +128,13 @@ class TmpDatafile
   end
 
   def self.mime_from_path(path)
-    `file --mime -b "#{path}"` rescue nil
+    file_mime_response = `file --mime -b "#{path}"`
+    if file_mime_response
+      response_parts = file_mime_response.split(";")
+      return response_parts[0]
+    else
+      nil
+    end
   end
 
   def self.mime_from_filename(filename)
@@ -149,6 +147,7 @@ class TmpDatafile
   end
 
   def extract_text
+    #Rails.logger.warn("inside extract_text")
     begin
     num_bytes = File.size?(self.storage_path)
       if num_bytes > ALLOWED_DISPLAY_BYTES
@@ -173,6 +172,7 @@ class TmpDatafile
   end
 
   def extract_image
+    #Rails.logger.warn("inside extract_image")
     begin
       create_peek('image', '')
       return true
@@ -184,6 +184,7 @@ class TmpDatafile
   end
 
   def extract_microsoft
+    #Rails.logger.warn("inside extract_microsoft")
     begin
       create_peek('microsoft', '')
       return true
@@ -194,6 +195,7 @@ class TmpDatafile
   end
 
   def extract_pdf
+    #Rails.logger.warn("inside extract_pdf")
     begin
       create_peek('pdf', '')
       return true
@@ -204,13 +206,15 @@ class TmpDatafile
   end
 
   def extract_zip
+    #Rails.logger.warn("inside extract_zip")
     begin
       entry_paths = []
       Zip::File.open(self.storage_path) do |zip_file|
         zip_file.each do |entry|
           if entry.name_safe?
             entry_path = valid_entry_path(entry.name)
-            if entry_path
+
+            if entry_path && !is_ds_store(entry_path) && !is_mac_thing(entry_path)
               entry_paths << entry_path
               create_item(entry_path, name_part(entry_path), entry.size, is_directory(entry_path))
             end
@@ -228,11 +232,13 @@ class TmpDatafile
       return true
     rescue StandardError => ex
       Problem.report("problem extracting zip listing for task #{self.task.id}: #{ex.message}")
-      return false
+      raise ex
+      #return false
     end
   end
 
   def extract_archive
+    #Rails.logger.warn("inside extract_archive")
     begin
 
       entry_paths = []
@@ -269,7 +275,9 @@ class TmpDatafile
   end
 
   def extract_default
+    #Rails.logger.warn("inside extract_default")
     begin
+      create_peek('none', '')
       return true
     rescue StandardError => ex
       Problem.report("problem creating default peek for task #{self.task.id}")
@@ -278,28 +286,39 @@ class TmpDatafile
   end
 
   def valid_entry_path(entry_path)
-    valid_path = nil
     if entry_path[-1] == '/'
-      valid_path = entry_path[0...-1]
+      return entry_path[0...-1]
+    elsif entry_path.length > 0
+      return entry_path
     end
   end
 
   def is_directory(path)
+    ends_in_slash(path) && !is_ds_store(path) && !is_mac_thing(path)
+  end
+
+  def is_mac_thing(path)
     entry_parts = path.split('/')
-    ends_in_slash = path[-1] == '/'
-    is_ds_store = name_part(path).strip() == '.DS_Store'
-    is_mac_thing = entry_parts.include?('__MACOSX')
+    entry_parts.include?('__MACOSX')
+  end
 
-    ends_in_slash && !is_ds_store && !is_mac_thing
+  def ends_in_slash(path)
+    return path[-1] == '/'
+  end
 
+  def is_ds_store(path)
+    name_part(path).strip() == '.DS_Store'
   end
 
   def name_part(path)
-    entry_parts = path.split('/')
-    if entry_parts.length > 1
-      entry_parts[-1]
-    else
-      entry_parts
+    valid_path = valid_entry_path(path)
+    if valid_path
+      entry_parts = valid_path.split('/')
+      if entry_parts.length > 1
+        entry_parts[-1]
+      else
+        valid_path
+      end
     end
   end
 
@@ -325,11 +344,11 @@ class TmpDatafile
   def entry_paths_arr_to_html(entry_paths)
     return_string = '<span class="glyphicon glyphicon-folder-open"></span> '
 
-    return_string << self.bytestream_name
+    return_string << self.task.binary_name
 
     entry_paths.each do |entry_path|
 
-      if entry_path.exclude?('__MACOSX/') && entry_path.exclude?('.DS_Store')
+      if entry_path.exclude?('__MACOSX') && entry_path.exclude?('.DS_Store')
 
         name_arr = entry_path.split("/")
 
@@ -364,8 +383,8 @@ class TmpDatafile
   end
 
   def create_item(path, name, size, is_directory)
-    NestedItem.create(task_id: self.task_id,
-                      dataset_id: self.task.datafiles_id,
+    NestedItem.create(task_id: self.task.id,
+                      dataset_id: self.task.dataset_id,
                       datafile_id: self.task.datafile_id,
                       item_path: path,
                       item_name: name,

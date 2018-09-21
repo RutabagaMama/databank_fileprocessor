@@ -1,5 +1,10 @@
 class Task < ApplicationRecord
 
+  has_many :peeks, dependent: :destroy
+  has_many :nested_items, dependent: :destroy
+
+  before_destroy :remove_tree
+
   attr_accessor :tmp_datafile
 
   def self.handle_new_tasks
@@ -37,6 +42,7 @@ class Task < ApplicationRecord
 
     if self.tmp_datafile
       success = self.tmp_datafile.extract_features
+      tmp_datafile.delete_tree
       self.stop_time = Time.now
       self.handled = success
       self.save
@@ -61,6 +67,12 @@ class Task < ApplicationRecord
       end
     end
     self.save
+  end
+
+  def remove_tree
+    if Application.storage_manager.tmp_root.exist?(self.tmp_key)
+      Application.storage_manager.tmp_root.delete_tree(self.tmp_key)
+    end
   end
 
   def tmp_key

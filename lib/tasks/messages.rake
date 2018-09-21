@@ -43,8 +43,8 @@ namespace :messages do
     msg4 = Hash.new
     msg4['storage_root'] = 'draft'
     msg4['storage_key'] = 'f42949e3f6695f462aa53c14386fd70d'
-    msg4['dataset_id'] = '2'
-    msg4['datafile_id'] = '17'
+    msg4['dataset_id'] = '11'
+    msg4['datafile_id'] = '20'
     msg4['binary_name'] = '15IL004_C7U2JANXX_s_7_fastq.txt.gz'
     msg4['operation'] = 'process'
     if connector && in_queue

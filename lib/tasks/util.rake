@@ -5,6 +5,8 @@ namespace :util do
     MessageIn.all.destroy_all
     MessageOut.all.destroy_all
     Problem.all.destroy_all
+    Peek.all.destroy_all
+    NestedItem.all.destroy_all
   end
 
 end
